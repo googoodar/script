@@ -85,62 +85,62 @@ if [ -d "/etc/ssh/sshd_config.d" ]; then
 fi
 
 # 5.2 修改主配置文件
-如果 grep -q“^#\？端口”/etc/ssh/sshd_config；然后
- sed -i -E“s/^#？端口 [0-9]+/端口 $SSH_PORT/" /etc/ssh/sshd_config
-别的
- echo "禁 $SSH_PORT" >> /etc/ssh/sshd_config
-菲
+if grep -q "^#\?Port" /etc/ssh/sshd_config; then
+    sed -i -E "s/^#?Port [0-9]+/Port $SSH_PORT/" /etc/ssh/sshd_config
+else
+    echo "Port $SSH_PORT" >> /etc/ssh/sshd_config
+fi
 
-sed -i -E“s/^#？Pubkey身份验证。*/PubkeyAuthentication 是/"/etc/ssh/sshd_config
-sed -i -E“s/^#？密码验证。*/等数数数/"/etc/ssh/sshd_config
-sed -i -E“s/^#？挑战响应身份验证。*/ChallengeResponseAuthentication no/" /etc/ssh/sshd_config
-sed -i -E“s/^#？KbdInteractive身份验证。*/KbdInteractiveAuthentication no/" /etc/ssh/sshd_config
+sed -i -E "s/^#?PubkeyAuthentication.*/PubkeyAuthentication yes/" /etc/ssh/sshd_config
+sed -i -E "s/^#?PasswordAuthentication.*/PasswordAuthentication no/" /etc/ssh/sshd_config
+sed -i -E "s/^#?ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/" /etc/ssh/sshd_config
+sed -i -E "s/^#?KbdInteractiveAuthentication.*/KbdInteractiveAuthentication no/" /etc/ssh/sshd_config
 
-# -----------------------------
-# 6。配置防火墙（UFW）
-# -----------------------
-echo -e "${YELLOW}[6/7] 配黄黄火子（黄行 SSH, 80, 443)...${NC}"
-echo "y" | ufw 重置 > /dev/null
-ufw 默认拒绝传入
-ufw 默认允许传出
-ufw 允许 $SSH_PORT/tcp 注释“SSH 端口”
-ufw 允许 80/tcp 注释“HTTP”
-ufw 慁许 443/tcp 注释“HTTPS”
-echo "y" | ufw 启用 > /dev/null
+# --------------------------------------------------
+# 6. 配置防火墙 (UFW)
+# --------------------------------------------------
+echo -e "${YELLOW}[6/7] 配置防火墙 (放行 SSH, 80, 443)...${NC}"
+echo "y" | ufw reset > /dev/null
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow $SSH_PORT/tcp comment 'SSH Port'
+ufw allow 80/tcp comment 'HTTP'
+ufw allow 443/tcp comment 'HTTPS'
+echo "y" | ufw enable > /dev/null
 
-# --------------------
-# 7。Fail2Ban 禁止
-# ------------------
-echo -e "${YELLOW}[7/7] 配置 Fail2Ban 并重启禁务……${NC}"
-cat>/etc/fail2ban/jail。当地的 <<大败
-[默认]
-ignoreip = 127。0。0。1/8::1
-班色子 = 3600
-查找时间=600
+# --------------------------------------------------
+# 7. 配置 Fail2Ban 并重启
+# --------------------------------------------------
+echo -e "${YELLOW}[7/7] 配置 Fail2Ban 并重启服务...${NC}"
+cat > /etc/fail2ban/jail.local <<FAIL
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1
+bantime  = 3600
+findtime  = 600
 maxretry = 5
 
-[嘘]
-已启用 = 真的
-端口 = $SSH_PORT
-过滤子 = sshd
-日志路径 = /var/log/auth。日志
-后端 = systemd
-大败
+[sshd]
+enabled = true
+port    = $SSH_PORT
+filter  = sshd
+logpath = /var/log/auth.log
+backend = systemd
+FAIL
 
-systemctl 重子 ssh
-systemctl 故障2ban
+systemctl restart ssh
+systemctl restart fail2ban
 apt autoremove -y > /dev/null 2>&1
 
-# -----------------
-# 8。运行完毕总结
-# ----------------
+# --------------------------------------------------
+# 8. 运行完毕总结
+# --------------------------------------------------
 echo -e "\n${GREEN}=== 系统初始化配置完成 ===${NC}"
-echo -e“已成功执声廥下操作:”
-echo -e " - 一洲/一海 一洲/一海
-echo -e " - curl、wget、ufw、fail2ban）"
+echo -e "已成功执行以下操作："
+echo -e " - 设置时区为 Asia/Shanghai 并更新系统"
+echo -e " - 安装基础软件 (curl, wget, ufw, fail2ban)"
 echo -e " - 开启内核 TCP BBR 网络加速"
 echo -e " - 写入 SSH 公钥并彻底禁用密码登录"
 echo -e " - 修改 SSH 端口为: ${YELLOW}$SSH_PORT${NC}"
-echo -e " - 启动 UFW 防火墙并放桌端口: ${YELLOW}$SSH_PORT, 80, 443${NC}"
-echo -e " - 故障 Fail2Ban SSH 故障故障"
+echo -e " - 启动 UFW 防火墙并放行端口: ${YELLOW}$SSH_PORT, 80, 443${NC}"
+echo -e " - 启动 Fail2Ban SSH 防爆破保护"
 echo -e "${GREEN}==========================${NC}\n"
